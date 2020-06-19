@@ -1,123 +1,165 @@
-from math import floor
+from math import log
 
-from nltk import FreqDist
-from numpy.ma import log, zeros
-from pandas import read_csv
-from scipy.stats import entropy
-from sklearn.model_selection import train_test_split
-from tensorflow.python.keras.preprocessing.sequence import pad_sequences
-from termcolor import cprint
-from time import time
+from matplotlib.pyplot import plot, xlabel, ylabel, legend, show as plot_show, title as plot_title
+from nltk import RegexpTokenizer, PorterStemmer, WordNetLemmatizer, Counter, download
+from nltk.corpus import stopwords
+from numpy.ma import zeros
+from regex import sub
+from tensorflow.keras.metrics import Precision, Recall
 
-from func import remove_html, remove_spec_char, tokenize, remove_stop_words, make_stem, replace_triple_more, \
-    remove_single_char, make_enum, to_vec
+download("stopwords")
+download("wordnet")
+
+stopWords = stopwords.words("english")
+tokenizer = RegexpTokenizer(r"[a-z]+")
+post_stemmer = PorterStemmer()
+lem = WordNetLemmatizer()
+metrics = [Precision(), Recall(), 'accuracy']
 
 
-def to_vec_td_idf(dataset, dim):
-    words_in_data = FreqDist([j for i in dataset for j in set(i)])
+def remove_html(text):
+    text = sub(r"<.+?>", " ", text)
+    return text
+
+
+def remove_spec_char(text):
+    ret = ""
+    for k in text:
+        if k.isalpha():
+            ret += k
+        else:
+            ret += " "
+    return ret
+
+
+def remove_stop_words(text_array):
+    text_array = [j for j in text_array if j not in stopWords]
+    return text_array
+
+
+def tokenize(text):
+    text_array = tokenizer.tokenize(text)
+    return text_array
+
+
+def make_stem(text_array):
+    text_array = [post_stemmer.stem(j) for j in text_array]
+    return text_array
+
+
+def remove_single_char(text_array):
+    ret = []
+    for j in text_array:
+        if len(j) > 1:
+            ret.append(j)
+    return ret
+
+
+def make_lem(text_array):
+    ret = []
+    for i in text_array:
+        ret.append(lem.lemmatize(i))
+    return ret
+
+
+def replace_triple_more(text_array):
+    ret = []
+    for i in text_array:
+        ret.append(sub(r'(.)\1\1+', r'\1', i))
+    return ret
+
+
+def make_enum(text_array, enum_words):
+    ret = []
+    for i in text_array:
+        if enum_words.get(i) is not None:
+            ret.append(enum_words[i])
+    return ret
+
+
+def make_sent_num(text):
+    if text == "positive":
+        return 1
+    else:
+        return 0
+
+
+def to_vec(dataset, dim):
     result = zeros((len(dataset), dim))
     for i, val in enumerate(dataset):
-        word_map = FreqDist(val)
-        for wd in word_map:
-            td = word_map[wd] / len(val)
-            idf = log(len(dataset) / words_in_data[wd])
-            # result[i, wd] = 1
-            result[i, wd] = td * idf
+        result[i, val] = 1
     return result
 
 
-def applying(rev, rem_stop_words=True):
-    rev = rev.apply(remove_html)
-    rev = rev.apply(lambda x: x.lower())
-    rev = rev.apply(remove_spec_char)
-    rev = rev.apply(tokenize)
-    if rem_stop_words:
-        rev = rev.apply(remove_stop_words)
-    # rev = rev.apply(make_lem)
-    rev = rev.apply(make_stem)
-    if rem_stop_words:
-        rev = rev.apply(remove_stop_words)
-    rev = rev.apply(replace_triple_more)
-    rev = rev.apply(remove_single_char)
-
-    return rev, FreqDist([j for i in rev.iloc for j in i])
+def td_idf_to_vec(dataset, dim, neg_word_occ, pos_word_occ):
+    result = zeros((len(dataset), dim))
+    for i, val in enumerate(dataset):
+        word_map = Counter(val)
+        for wd in val:
+            print(word_map)
+            result[i][wd] = log(len(dataset) / (neg_word_occ[wd] + pos_word_occ[wd]), 10) * word_map[wd] / len(val)
+    return result
 
 
-def information_gain(main_data, word_list):
-    pos_rev = main_data.loc[main_data["sentiment"] == "positive"]["review"]
-    neg_rev = main_data.loc[main_data["sentiment"] == "negative"]["review"]
-    pos_word_occur = FreqDist([j for i in pos_rev.iloc for j in i])
-    neg_word_occur = FreqDist([j for i in neg_rev.iloc for j in i])
+def show(model, x_tr, x_te, y_tr, y_te, verb=0, plt=True, bs=200, eps=None, plt_title=None, num=1):
+    # print(model.summary())
+    acc = list()
+    val_acc = list()
+    epochs = 10 if not eps else eps
+    max_scores = [-1, -1, -1, -1]
+    best_epoch = None
+    for _ in range(epochs):
+        history = model.fit(x_tr, y_tr, epochs=1, batch_size=bs, validation_split=0.1, verbose=verb)
+        acc += history.history['accuracy']
+        val_acc += history.history['val_accuracy']
+        scores = model.evaluate(x_te, y_te, verbose=0)
+        if _ % num == 0:
+            f1_score = 2 * scores[1] * scores[2] / (scores[1] + scores[2]) if scores[1] + scores[2] != 0 else 0
+            print("Accuracy: {}    F1 score: {}".format(scores[3], f1_score))
+        if acc[-1] > 95 or abs(acc[-1] - val_acc[-1] > 7):
+            print(acc[-1])
+            print(abs(acc[-1] - val_acc[-1] > 7))
+            break
+        if max_scores[3] < scores[3]:
+            max_scores = scores
+            best_epoch = _ + 1
 
-    for i in word_list:
-        if i not in pos_word_occur:
-            pos_word_occur[i] = 0
-        if i not in neg_word_occur:
-            neg_word_occur[i] = 0
+    scores = model.evaluate(x_te, y_te, verbose=0)
+    f1_score = 2 * scores[1] * scores[2] / (scores[1] + scores[2]) if scores[1] + scores[2] != 0 else 0
+    print("Accuracy: {}    F1 score: {}".format(scores[3], f1_score))
+    if plt:
+        plot_title(plt_title)
+        plot(acc, label='Learning')
+        plot(val_acc, label='Validation')
+        xlabel('Epoch')
+        ylabel('Accuracy')
+        legend()
+        plot_show()
 
-    ig = {}
-
-    for i in word_list:
-        f = ((pos_word_occur[i] + neg_word_occur[i]) / len(main_data) *
-             entropy([pos_word_occur[i], neg_word_occur[i]], base=2))
-        s = ((len(main_data) - pos_word_occur[i] - neg_word_occur[i]) / len(main_data) *
-             entropy([len(pos_rev) - pos_word_occur[i], len(neg_rev) - neg_word_occur[i]], base=2))
-        ig[i] = entropy([len(neg_rev), len(pos_rev)], base=2) - (f + s)
-
-    sorted_ig = sorted(ig.items(), key=lambda x: x[1])
-    cprint('The best IG words', 'green')
-    for i in sorted_ig[-10:]:
-        print(i)
-
-    return sorted_ig
-
-
-def make_data(data_len=None):
-    # data = read_csv("IMDB_Dataset.csv", encoding="utf-8")
-    data = read_csv("/content/drive/My Drive/IMDB_Dataset.csv", encoding="utf-8")
-    data_len = int(input("Data len:")) if not data_len else data_len
-    data = data.loc[data["sentiment"] == "positive"].iloc[:floor(data_len / 2)].append(
-        data.loc[data["sentiment"] == "negative"].iloc[:floor(data_len / 2)])
-    data = data.sample(data_len)
-
-    return data
+    return scores, epochs, max_scores, best_epoch
 
 
-def main_fun(data, rem_stop_words, is_ig=True, num_of_wds=None, pad_len=None):
-    start = time()
-    data["review"], words = applying(data["review"], rem_stop_words)
+def td_idf(text_array, neg_word_occ, pos_word_occ):
+    for i in text_array:
+        word_map = Counter(i)
+        for wd in word_map:
+            word_map[wd] = log(len(text_array) / (neg_word_occ[wd] + pos_word_occ[wd]), 10) * word_map[wd] / len(i)
+        print(word_map)
+        break
 
-    cprint("Quantity of the words: {}".format(len(words)), "blue")
+# print("val-accuracy: ", history.history["val_accuracy"])
+# print("loss: ", history.history["loss"])
+# print("################################")
+# print("Loss:", scores[0])
+# print("Precision:", scores[1])
+# print("Recall:", scores[2])
+# print("F1 score:", (2 * scores[1] * scores[2]) / (scores[1] + scores[2]))
 
-    if is_ig:
-        ig = information_gain(data, words)
-        num_of_wds = int(input("Number of words:")) if not num_of_wds else num_of_wds
-        enum_words = {j[0]: i + 1 for i, j in enumerate(ig[-num_of_wds:])}
-    else:
-        print(len(words))
-        enum_words = {j: i + 1 for i, j in enumerate(words)}
-
-    data["review"] = data["review"].apply(make_enum, args=[enum_words])
-
-    max_len = max([len(i) for i in data["review"]])
-    cprint("Words reducing", "green")
-    print("Number of empty reviews:", len([None for i in data["review"] if len(i) == 0]))
-    print("Max length:", max_len)
-
-    sentiments = data["sentiment"].apply(lambda x: 1 if x == "positive" else 0)
-    x_train, x_test, y_train, y_test = train_test_split(data["review"], sentiments, test_size=0.2)
-
-    pad_len = max_len if not pad_len else pad_len
-    x_train_pre = pad_sequences(x_train, pad_len, padding="pre")
-    x_test_pre = pad_sequences(x_test, pad_len, padding="pre")
-
-    x_train_vec = to_vec(x_train, len(enum_words) + 1)
-    x_test_vec = to_vec(x_test, len(enum_words) + 1)
-
-    x_train_vec_td_idf = to_vec_td_idf(x_train, len(enum_words) + 1)
-    x_test_vec_td_idf = to_vec_td_idf(x_test, len(enum_words) + 1)
-
-    cprint("Time of cleaning: {}". format(time() - start), "green")
-    cprint("End of data cleaning", "red")
-    return x_train_pre, x_test_pre, x_train_vec, x_test_vec, x_train_vec_td_idf, x_test_vec_td_idf, y_test, y_train, len(
-        enum_words), pad_len
+# scores.append(2 * scores[1] * scores[2]) / (scores[1] + scores[2])
+# print("################################")
+# print("Loss:", scores[0], end=" ")
+# print("Precision:", scores[1])
+# print("Recall:", scores[2], end=" ")
+# print("Accuracy:", scores[3], end=" ")
+# print("F1 score:", (2 * scores[1] * scores[2]) / (scores[1] + scores[2]))
+# print("Sum of epochs:", epochs)

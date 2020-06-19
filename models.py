@@ -17,14 +17,14 @@ def human_time(time_val):
     return "{}:{}".format(int(time_val // 60 % 60), round(time_val % 60, 2))
 
 
-def run_models(from_main_fun, epochs, adding=""):
+def run_models(from_main_fun, epoch_s, adding=""):
     scores = {}
 
-    def run_one_model(model, x_train, x_test, epc, name="model"):
+    def run_one_model(model, x_train, x_test, epc, name="model", num=1):
         name += adding
         cprint(name, "green")
         start_time = time()
-        sc_epc = show(model, x_train, x_test, y_train, y_test, plt=True, eps=epc, plt_title=name)
+        sc_epc = show(model, x_train, x_test, y_train, y_test, plt=True, eps=epc, plt_title=name, num=num)
         scores[name] = [sc_epc, time() - start_time]
         clear_session()
 
@@ -111,26 +111,27 @@ def run_models(from_main_fun, epochs, adding=""):
     bst = find_best_for_sequential(x_train_vec, x_test_vec)
     clear_session()
 
-    run_one_model(sequential(bst), x_train_vec, x_test_vec, epc=epochs[0], name="Sequential")
-    run_one_model(embedding(), x_train_pre, x_test_pre, epc=epochs[1], name="Embedding")
-    run_one_model(simple_rnn(), x_train_pre, x_test_pre, epc=epochs[2], name="Simple RNN")
-    run_one_model(double_lstm(), x_train_pre, x_test_pre, epc=epochs[3], name="Double LSTM")
-    run_one_model(bidirectional_lstm(), x_train_pre, x_test_pre, epc=epochs[4], name="Bidirectional LSTM")
-    run_one_model(lstm(), x_train_pre, x_test_pre, epc=epochs[5], name="Simple LSTM")
+    run_one_model(sequential(bst), x_train_vec, x_test_vec, epc=epoch_s[0], name="Sequential", num=10)
+    run_one_model(embedding(), x_train_pre, x_test_pre, epc=epoch_s[1], name="Embedding")
+    run_one_model(simple_rnn(), x_train_pre, x_test_pre, epc=epoch_s[2], name="Simple RNN")
+    run_one_model(double_lstm(), x_train_pre, x_test_pre, epc=epoch_s[3], name="Double LSTM")
+    run_one_model(bidirectional_lstm(), x_train_pre, x_test_pre, epc=epoch_s[4], name="Bidirectional LSTM")
+    run_one_model(lstm(), x_train_pre, x_test_pre, epc=epoch_s[5], name="Simple LSTM")
 
     cprint("End of modeling", "cyan")
     print(end="\n\n")
     return scores
 
 
-data = make_data(data_len=500)
+epochs = [150, 20, 20, 20, 20, 20]
+data = make_data(data_len=1000)
 ig_scores = run_models(main_fun(
     deepcopy(data),
     rem_stop_words=True,
     is_ig=True,
     num_of_wds=500
     # pad_len=500
-), adding=" with 2000 words", epochs=[50, 4, 4, 4, 4, 4])
+), adding=" with 2000 words", epoch_s=epochs)
 
 simple_scores = run_models(main_fun(
     data,
@@ -138,25 +139,12 @@ simple_scores = run_models(main_fun(
     is_ig=True,
     num_of_wds=500
     # pad_len=500
-), adding=" with 4000 words", epochs=[50, 4, 4, 4, 4, 4])
+), adding=" no IG", epoch_s=epochs)
 
 
-table = BeautifulTable()
-table.column_headers = ["name", "loss", "Precision", "Recall", "F1 score", "Accuracy", "time", "epoch"]
-for i, j in zip(ig_scores, simple_scores):
-    s = ig_scores[i][0][0]
-    f1_score = 2 * s[1] * s[2] / (s[1] + s[2]) if s[1] + s[2] != 0 else 0
-    table.append_row(
-        [i, s[0], s[1], s[2], f1_score, s[3], human_time(ig_scores[i][1]), ig_scores[i][0][1]])
-    s = simple_scores[j][0][0]
-    f1_score = 2 * s[1] * s[2] / (s[1] + s[2]) if s[1] + s[2] != 0 else 0
-    table.append_row([j, s[0], s[1], s[2], f1_score, s[3], human_time(simple_scores[j][1]),
-                      simple_scores[j][0][1]])
-print(table, end="\n\n\n")
 cprint('MAX Accuracy table', 'green')
 table = BeautifulTable()
 table.set_style(STYLE_BOX)
-
 lis = ["name", "loss", "Precision", "Recall", "F1 score", "Accuracy", "time", "epoch"]
 table.column_headers = [colored(i, "red") for i in lis]
 for i, j in zip(ig_scores, simple_scores):
@@ -169,4 +157,21 @@ for i, j in zip(ig_scores, simple_scores):
     table.append_row([j, s[0], s[1], s[2], f1_score, s[3], human_time(simple_scores[j][1]),
                       simple_scores[j][0][3]])
 
+print(table, end="\n\n\n")
+
+
+cprint('Last accuracy table', 'green')
+table = BeautifulTable()
+table.set_style(STYLE_BOX)
+lis = ["name", "loss", "Precision", "Recall", "F1 score", "Accuracy", "time", "epoch"]
+table.column_headers = [colored(i, "red") for i in lis]
+for i, j in zip(ig_scores, simple_scores):
+    s = ig_scores[i][0][0]
+    f1_score = 2 * s[1] * s[2] / (s[1] + s[2]) if s[1] + s[2] != 0 else 0
+    table.append_row(
+        [i, s[0], s[1], s[2], f1_score, s[3], human_time(ig_scores[i][1]), ig_scores[i][0][1]])
+    s = simple_scores[j][0][0]
+    f1_score = 2 * s[1] * s[2] / (s[1] + s[2]) if s[1] + s[2] != 0 else 0
+    table.append_row([j, s[0], s[1], s[2], f1_score, s[3], human_time(simple_scores[j][1]),
+                      simple_scores[j][0][1]])
 print(table)
