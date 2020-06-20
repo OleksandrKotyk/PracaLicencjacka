@@ -1,10 +1,25 @@
 <component name="ProjectDictionaryState">
   <dictionary name="malki">
     <words>
+      <w>beautifultable</w>
       <w>crossentropy</w>
+      <w>iloc</w>
+      <w>keras</w>
+      <w>lemmatize</w>
+      <w>lemmatizer</w>
       <w>lstm</w>
+      <w>matplotlib</w>
+      <w>nltk</w>
+      <w>preprocessing</w>
+      <w>pyplot</w>
       <w>relu</w>
+      <w>rmsprop</w>
+      <w>scipy</w>
+      <w>sklearn</w>
+      <w>tensorflow</w>
       <w>wordnet</w>
+      <w>xlabel</w>
+      <w>ylabel</w>
     </words>
   </dictionary>
 </component>

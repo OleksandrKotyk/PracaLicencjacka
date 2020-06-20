@@ -1,7 +1,7 @@
-from math import floor
+from math import floor, log10
 
 from nltk import FreqDist
-from numpy.ma import log, zeros
+from numpy.ma import zeros
 from pandas import read_csv
 from scipy.stats import entropy
 from sklearn.model_selection import train_test_split
@@ -20,7 +20,7 @@ def to_vec_td_idf(dataset, dim):
         word_map = FreqDist(val)
         for wd in word_map:
             td = word_map[wd] / len(val)
-            idf = log(len(dataset) / words_in_data[wd])
+            idf = log10(len(dataset) / words_in_data[wd])
             # result[i, wd] = 1
             result[i, wd] = td * idf
     return result
@@ -46,8 +46,8 @@ def applying(rev, rem_stop_words=True):
 def information_gain(main_data, word_list):
     pos_rev = main_data.loc[main_data["sentiment"] == "positive"]["review"]
     neg_rev = main_data.loc[main_data["sentiment"] == "negative"]["review"]
-    pos_word_occur = FreqDist([j for i in pos_rev.iloc for j in i])
-    neg_word_occur = FreqDist([j for i in neg_rev.iloc for j in i])
+    pos_word_occur = FreqDist([j for i in pos_rev.iloc for j in set(i)])
+    neg_word_occur = FreqDist([j for i in neg_rev.iloc for j in set(i)])
 
     for i in word_list:
         if i not in pos_word_occur:
@@ -83,7 +83,7 @@ def make_data(data_len=None):
     return data
 
 
-def main_fun(data, rem_stop_words, is_ig=True, num_of_wds=None, pad_len=None):
+def data_preparing(data, rem_stop_words, is_ig=True, num_of_wds=None, pad_len=None):
     start = time()
     data["review"], words = applying(data["review"], rem_stop_words)
 
@@ -94,7 +94,6 @@ def main_fun(data, rem_stop_words, is_ig=True, num_of_wds=None, pad_len=None):
         num_of_wds = int(input("Number of words:")) if not num_of_wds else num_of_wds
         enum_words = {j[0]: i + 1 for i, j in enumerate(ig[-num_of_wds:])}
     else:
-        print(len(words))
         enum_words = {j: i + 1 for i, j in enumerate(words)}
 
     data["review"] = data["review"].apply(make_enum, args=[enum_words])
@@ -117,7 +116,7 @@ def main_fun(data, rem_stop_words, is_ig=True, num_of_wds=None, pad_len=None):
     x_train_vec_td_idf = to_vec_td_idf(x_train, len(enum_words) + 1)
     x_test_vec_td_idf = to_vec_td_idf(x_test, len(enum_words) + 1)
 
-    cprint("Time of cleaning: {}". format(time() - start), "green")
+    cprint("Time of cleaning: {}".format(time() - start), "green")
     cprint("End of data cleaning", "red")
     return x_train_pre, x_test_pre, x_train_vec, x_test_vec, x_train_vec_td_idf, x_test_vec_td_idf, y_test, y_train, len(
         enum_words), pad_len

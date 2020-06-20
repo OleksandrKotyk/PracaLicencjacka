@@ -9,7 +9,7 @@ from tensorflow.python.keras.layers import Dense, Embedding, Flatten, SimpleRNN,
 from tensorflow.python.keras.models import Sequential
 from termcolor import cprint, colored
 
-from data_making import main_fun, make_data
+from data_making import data_preparing, make_data
 from func import metrics, show
 
 
@@ -111,12 +111,14 @@ def run_models(from_main_fun, epoch_s, adding=""):
     bst = find_best_for_sequential(x_train_vec, x_test_vec)
     clear_session()
 
+    run_one_model(sequential(bst), x_train_vec_td_idf, x_test_vec_td_idf, epc=epoch_s[0], name="Sequential td-idf",
+                  num=10)
     run_one_model(sequential(bst), x_train_vec, x_test_vec, epc=epoch_s[0], name="Sequential", num=10)
-    run_one_model(embedding(), x_train_pre, x_test_pre, epc=epoch_s[1], name="Embedding")
-    run_one_model(simple_rnn(), x_train_pre, x_test_pre, epc=epoch_s[2], name="Simple RNN")
-    run_one_model(double_lstm(), x_train_pre, x_test_pre, epc=epoch_s[3], name="Double LSTM")
-    run_one_model(bidirectional_lstm(), x_train_pre, x_test_pre, epc=epoch_s[4], name="Bidirectional LSTM")
-    run_one_model(lstm(), x_train_pre, x_test_pre, epc=epoch_s[5], name="Simple LSTM")
+    run_one_model(embedding(), x_train_pre, x_test_pre, epc=epoch_s[1], name="Embedding", num=5)
+    run_one_model(simple_rnn(), x_train_pre, x_test_pre, epc=epoch_s[2], name="Simple RNN", num=5)
+    run_one_model(double_lstm(), x_train_pre, x_test_pre, epc=epoch_s[3], name="Double LSTM", num=5)
+    run_one_model(bidirectional_lstm(), x_train_pre, x_test_pre, epc=epoch_s[4], name="Bidirectional LSTM", num=5)
+    run_one_model(lstm(), x_train_pre, x_test_pre, epc=epoch_s[5], name="Simple LSTM", num=5)
 
     cprint("End of modeling", "cyan")
     print(end="\n\n")
@@ -124,54 +126,24 @@ def run_models(from_main_fun, epoch_s, adding=""):
 
 
 epochs = [150, 20, 20, 20, 20, 20]
-data = make_data(data_len=1000)
-ig_scores = run_models(main_fun(
+data = make_data(data_len=10000)
+
+simple_scores = run_models(data_preparing(
     deepcopy(data),
     rem_stop_words=True,
     is_ig=True,
-    num_of_wds=500
+    num_of_wds=7000
     # pad_len=500
-), adding=" with 2000 words", epoch_s=epochs)
-
-simple_scores = run_models(main_fun(
-    data,
-    rem_stop_words=True,
-    is_ig=True,
-    num_of_wds=500
-    # pad_len=500
-), adding=" no IG", epoch_s=epochs)
-
+), adding="", epoch_s=epochs)
 
 cprint('MAX Accuracy table', 'green')
 table = BeautifulTable()
 table.set_style(STYLE_BOX)
 lis = ["name", "loss", "Precision", "Recall", "F1 score", "Accuracy", "time", "epoch"]
 table.column_headers = [colored(i, "red") for i in lis]
-for i, j in zip(ig_scores, simple_scores):
-    s = ig_scores[i][0][2]
+for i in simple_scores:
+    s = simple_scores[i][0][2]
     f1_score = 2 * s[1] * s[2] / (s[1] + s[2]) if s[1] + s[2] != 0 else 0
-    table.append_row(
-        [i, s[0], s[1], s[2], f1_score, s[3], human_time(ig_scores[i][1]), ig_scores[i][0][3]])
-    s = simple_scores[j][0][2]
-    f1_score = 2 * s[1] * s[2] / (s[1] + s[2]) if s[1] + s[2] != 0 else 0
-    table.append_row([j, s[0], s[1], s[2], f1_score, s[3], human_time(simple_scores[j][1]),
-                      simple_scores[j][0][3]])
-
+    table.append_row([i, s[0], s[1], s[2], f1_score, s[3], human_time(simple_scores[i][1]),
+                      simple_scores[i][0][3]])
 print(table, end="\n\n\n")
-
-
-cprint('Last accuracy table', 'green')
-table = BeautifulTable()
-table.set_style(STYLE_BOX)
-lis = ["name", "loss", "Precision", "Recall", "F1 score", "Accuracy", "time", "epoch"]
-table.column_headers = [colored(i, "red") for i in lis]
-for i, j in zip(ig_scores, simple_scores):
-    s = ig_scores[i][0][0]
-    f1_score = 2 * s[1] * s[2] / (s[1] + s[2]) if s[1] + s[2] != 0 else 0
-    table.append_row(
-        [i, s[0], s[1], s[2], f1_score, s[3], human_time(ig_scores[i][1]), ig_scores[i][0][1]])
-    s = simple_scores[j][0][0]
-    f1_score = 2 * s[1] * s[2] / (s[1] + s[2]) if s[1] + s[2] != 0 else 0
-    table.append_row([j, s[0], s[1], s[2], f1_score, s[3], human_time(simple_scores[j][1]),
-                      simple_scores[j][0][1]])
-print(table)

@@ -135,7 +135,7 @@ def show(model, x_tr, x_te, y_tr, y_te, verb=0, plt=True, bs=200, eps=None, plt_
         ylabel('Accuracy')
         legend()
         plot_show()
-
+    del model
     return scores, epochs, max_scores, best_epoch
 
 
@@ -146,20 +146,3 @@ def td_idf(text_array, neg_word_occ, pos_word_occ):
             word_map[wd] = log(len(text_array) / (neg_word_occ[wd] + pos_word_occ[wd]), 10) * word_map[wd] / len(i)
         print(word_map)
         break
-
-# print("val-accuracy: ", history.history["val_accuracy"])
-# print("loss: ", history.history["loss"])
-# print("################################")
-# print("Loss:", scores[0])
-# print("Precision:", scores[1])
-# print("Recall:", scores[2])
-# print("F1 score:", (2 * scores[1] * scores[2]) / (scores[1] + scores[2]))
-
-# scores.append(2 * scores[1] * scores[2]) / (scores[1] + scores[2])
-# print("################################")
-# print("Loss:", scores[0], end=" ")
-# print("Precision:", scores[1])
-# print("Recall:", scores[2], end=" ")
-# print("Accuracy:", scores[3], end=" ")
-# print("F1 score:", (2 * scores[1] * scores[2]) / (scores[1] + scores[2]))
-# print("Sum of epochs:", epochs)
