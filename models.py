@@ -36,7 +36,7 @@ def run_models(from_main_fun, epoch_s, adding=""):
             model = Sequential()
             num = randint(100, 250)
             num2 = randint(20, num - 20)
-            model.add(Dense(num, activation="relu", input_dim=dict_len + 1))
+            model.add(Dense(num, activation="relu", input_dim=dict_len))
             model.add(Dense(num2, activation="relu"))
             model.add(Dense(1, activation='sigmoid'))
             model.compile(optimizer="sgd", loss='binary_crossentropy', metrics=metrics)
@@ -54,7 +54,7 @@ def run_models(from_main_fun, epoch_s, adding=""):
 
     def sequential(best):
         model = Sequential()
-        model.add(Dense(best[0], activation="relu", input_dim=dict_len + 1))
+        model.add(Dense(best[0], activation="relu", input_dim=dict_len))
         model.add(Dense(best[1], activation="relu"))
         model.add(Dense(1, activation='sigmoid'))
         model.compile(optimizer="sgd", loss='binary_crossentropy', metrics=metrics)
@@ -62,7 +62,7 @@ def run_models(from_main_fun, epoch_s, adding=""):
 
     def embedding():
         model = Sequential()
-        model.add(Embedding(dict_len + 1, 32, input_length=pad_len))
+        model.add(Embedding(dict_len, 32, input_length=pad_len))
         model.add(Flatten())
         model.add(Dense(30, activation="sigmoid"))
         model.add(Dense(1, activation='sigmoid'))
@@ -71,7 +71,7 @@ def run_models(from_main_fun, epoch_s, adding=""):
 
     def simple_rnn():
         model = Sequential()
-        model.add(Embedding(dict_len + 1, 32, input_length=pad_len))
+        model.add(Embedding(dict_len, 32, input_length=pad_len))
         model.add(SimpleRNN(10))
         model.add(Dropout(0.1))
         model.add(Dense(1, activation='sigmoid'))
@@ -80,7 +80,7 @@ def run_models(from_main_fun, epoch_s, adding=""):
 
     def double_lstm():
         model = Sequential()
-        model.add(Embedding(dict_len + 1, 32, input_length=pad_len))
+        model.add(Embedding(dict_len, 32, input_length=pad_len))
         model.add(LSTM(10, return_sequences=True))
         model.add(LSTM(10))
         model.add(Dropout(0.6))
@@ -90,7 +90,7 @@ def run_models(from_main_fun, epoch_s, adding=""):
 
     def bidirectional_lstm():
         model = Sequential()
-        model.add(Embedding(dict_len + 1, 32, input_length=pad_len))
+        model.add(Embedding(dict_len, 32, input_length=pad_len))
         model.add(Bidirectional(LSTM(10)))
         model.add(Dropout(0.6))
         model.add(Dense(1, activation='sigmoid'))
@@ -99,7 +99,7 @@ def run_models(from_main_fun, epoch_s, adding=""):
 
     def lstm():
         model = Sequential()
-        model.add(Embedding(dict_len + 1, 32, input_length=pad_len))
+        model.add(Embedding(dict_len, 32, input_length=pad_len))
         model.add(LSTM(10))
         model.add(Dropout(0.6))
         model.add(Dense(1, activation='sigmoid'))
@@ -125,14 +125,14 @@ def run_models(from_main_fun, epoch_s, adding=""):
     return scores
 
 
-epochs = [150, 20, 20, 20, 20, 20]
-data = make_data(data_len=10000)
+epochs = [150, 30, 30, 30, 30, 30]
+data = make_data(data_len=5000)
 
 simple_scores = run_models(data_preparing(
     deepcopy(data),
     rem_stop_words=True,
     is_ig=True,
-    num_of_wds=7000
+    num_of_wds=1000
     # pad_len=500
 ), adding="", epoch_s=epochs)
 

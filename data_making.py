@@ -119,4 +119,4 @@ def data_preparing(data, rem_stop_words, is_ig=True, num_of_wds=None, pad_len=No
     cprint("Time of cleaning: {}".format(time() - start), "green")
     cprint("End of data cleaning", "red")
     return x_train_pre, x_test_pre, x_train_vec, x_test_vec, x_train_vec_td_idf, x_test_vec_td_idf, y_test, y_train, len(
-        enum_words), pad_len
+        enum_words) + 1, pad_len
