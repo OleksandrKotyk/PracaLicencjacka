@@ -1,9 +1,10 @@
 from math import log
 
-from matplotlib.pyplot import plot, xlabel, ylabel, legend, show as plot_show, title as plot_title
+from matplotlib.pyplot import plot, xlabel, ylabel, legend, title as plot_title, grid, xticks, \
+    yticks, figure, savefig, close
 from nltk import RegexpTokenizer, PorterStemmer, WordNetLemmatizer, Counter, download
 from nltk.corpus import stopwords
-from numpy.ma import zeros
+from numpy.ma import zeros, arange
 from regex import sub
 from tensorflow.keras.metrics import Precision, Recall
 
@@ -101,42 +102,53 @@ def td_idf_to_vec(dataset, dim, neg_word_occ, pos_word_occ):
     return result
 
 
-def show(model, x_tr, x_te, y_tr, y_te, verb=0, plt=True, bs=200, eps=None, plt_title=None, num=1):
-    # print(model.summary())
+def show(model, x_tr, x_te, y_tr, y_te, verb=0, plt=True, bs=200, eps=None, plt_title=None, num=None):
     acc = list()
     val_acc = list()
+    test_acc = list()
+    loss = list()
     epochs = 10 if not eps else eps
-    max_scores = [-1, -1, -1, -1]
+    best_scores = [-1, -1, -1, -1]
     best_epoch = None
+    loss_now = 1000000
+    go = True
     for _ in range(epochs):
-        history = model.fit(x_tr, y_tr, epochs=1, batch_size=bs, validation_split=0.1, verbose=verb)
+        history = model.fit(x_tr, y_tr, epochs=1, batch_size=bs, validation_split=0.05, verbose=verb)
         acc += history.history['accuracy']
         val_acc += history.history['val_accuracy']
         scores = model.evaluate(x_te, y_te, verbose=0)
-        if _ % num == 0:
+        test_acc += [scores[3]]
+        loss += history.history['val_loss']
+        if num is not None and _ % num == 0:
             f1_score = 2 * scores[1] * scores[2] / (scores[1] + scores[2]) if scores[1] + scores[2] != 0 else 0
-            print("Accuracy: {}    F1 score: {}".format(scores[3], f1_score))
-        if acc[-1] > 95 or abs(acc[-1] - val_acc[-1] > 7):
-            print(acc[-1])
-            print(abs(acc[-1] - val_acc[-1] > 7))
-            break
-        if max_scores[3] < scores[3]:
-            max_scores = scores
-            best_epoch = _ + 1
+            print("Accuracy: {}    F1 score: {}    Loss: {}".format(scores[3], f1_score, scores[0]))
+        if loss_now > history.history['val_loss'][0] and go:
+            loss_now = history.history['val_loss'][0]
+            if best_scores[3] < scores[3]:
+                best_scores = scores
+                best_epoch = _ + 1
+        else:
+            go = False
 
-    scores = model.evaluate(x_te, y_te, verbose=0)
-    f1_score = 2 * scores[1] * scores[2] / (scores[1] + scores[2]) if scores[1] + scores[2] != 0 else 0
-    print("Accuracy: {}    F1 score: {}".format(scores[3], f1_score))
     if plt:
+        figure(figsize=(8, 5))
+        grid(True)
+        xticks(arange(1, epochs + 1, 1))
+        yticks(arange(0, 1.05, 0.05))
         plot_title(plt_title)
-        plot(acc, label='Learning')
-        plot(val_acc, label='Validation')
+        plot(arange(1, epochs + 1, 1), acc, label='Learning')
+        plot(arange(1, epochs + 1, 1), val_acc, label='Validation')
+        plot(arange(1, epochs + 1, 1), test_acc, label='Test')
+        plot(arange(1, epochs + 1, 1), loss, label='Validation loss')
         xlabel('Epoch')
         ylabel('Accuracy')
         legend()
-        plot_show()
+        # plot_show()
+        savefig("plots/" + plt_title + ".png")
+        close("all")
     del model
-    return scores, epochs, max_scores, best_epoch
+
+    return best_scores, best_epoch
 
 
 def td_idf(text_array, neg_word_occ, pos_word_occ):

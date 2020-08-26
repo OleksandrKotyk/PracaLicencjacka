@@ -1,6 +1,7 @@
 <component name="ProjectDictionaryState">
   <dictionary name="malki">
     <words>
+      <w>adagrad</w>
       <w>beautifultable</w>
       <w>crossentropy</w>
       <w>iloc</w>
@@ -16,9 +17,11 @@
       <w>rmsprop</w>
       <w>scipy</w>
       <w>sklearn</w>
+      <w>sprop</w>
       <w>tensorflow</w>
       <w>wordnet</w>
       <w>xlabel</w>
+      <w>xlses</w>
       <w>ylabel</w>
     </words>
   </dictionary>

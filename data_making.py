@@ -7,7 +7,6 @@ from scipy.stats import entropy
 from sklearn.model_selection import train_test_split
 from tensorflow.python.keras.preprocessing.sequence import pad_sequences
 from termcolor import cprint
-from time import time
 
 from func import remove_html, remove_spec_char, tokenize, remove_stop_words, make_stem, replace_triple_more, \
     remove_single_char, make_enum, to_vec
@@ -40,7 +39,11 @@ def applying(rev, rem_stop_words=True):
     rev = rev.apply(replace_triple_more)
     rev = rev.apply(remove_single_char)
 
-    return rev, FreqDist([j for i in rev.iloc for j in i])
+    terms = FreqDist([j for i in rev.iloc for j in i])
+    tekst = "Quantity of terms: {}".format(len(terms))
+    cprint(tekst, "blue")
+
+    return rev, terms
 
 
 def information_gain(main_data, word_list):
@@ -83,15 +86,10 @@ def make_data(data_len=None):
     return data
 
 
-def data_preparing(data, rem_stop_words, is_ig=True, num_of_wds=None, pad_len=None):
-    start = time()
-    data["review"], words = applying(data["review"], rem_stop_words)
-
-    cprint("Quantity of the words: {}".format(len(words)), "blue")
-
-    if is_ig:
+def data_preparing(data, words, num_of_wds=None, pad_len=None):
+    if num_of_wds is not None:
         ig = information_gain(data, words)
-        num_of_wds = int(input("Number of words:")) if not num_of_wds else num_of_wds
+        num_of_wds = int(input("Number of terms:")) if not num_of_wds else num_of_wds
         enum_words = {j[0]: i + 1 for i, j in enumerate(ig[-num_of_wds:])}
     else:
         enum_words = {j: i + 1 for i, j in enumerate(words)}
@@ -99,7 +97,7 @@ def data_preparing(data, rem_stop_words, is_ig=True, num_of_wds=None, pad_len=No
     data["review"] = data["review"].apply(make_enum, args=[enum_words])
 
     max_len = max([len(i) for i in data["review"]])
-    cprint("Words reducing", "green")
+    cprint("Terms reducing", "green")
     print("Number of empty reviews:", len([None for i in data["review"] if len(i) == 0]))
     print("Max length:", max_len)
 
@@ -116,7 +114,6 @@ def data_preparing(data, rem_stop_words, is_ig=True, num_of_wds=None, pad_len=No
     x_train_vec_td_idf = to_vec_td_idf(x_train, len(enum_words) + 1)
     x_test_vec_td_idf = to_vec_td_idf(x_test, len(enum_words) + 1)
 
-    cprint("Time of cleaning: {}".format(time() - start), "green")
     cprint("End of data cleaning", "red")
     return x_train_pre, x_test_pre, x_train_vec, x_test_vec, x_train_vec_td_idf, x_test_vec_td_idf, y_test, y_train, len(
         enum_words) + 1, pad_len
