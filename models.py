@@ -159,7 +159,7 @@ for number_of_d in [1000, 3000, 7000, 11000, 15000]:
     cprint('---------------------------------------\n', 'blue')
     for quantity_of_w in [1000, 5000, 10000, 15000, 20000]:
 
-        if len(terms) >= quantity_of_w == 7000:
+        if len(terms) >= quantity_of_w < 10000 and number_of_d == 7000:
             cprint(str(quantity_of_w) + " terms", "cyan")
             data = data_preparing(deepcopy(main_data), terms, num_of_wds=quantity_of_w)
             scr = run_models(data, adding=" SGD " + str(number_of_d) + "d " + str(quantity_of_w) + "t", epoch_s=epochs,
