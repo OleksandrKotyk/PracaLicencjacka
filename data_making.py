@@ -20,7 +20,6 @@ def to_vec_td_idf(dataset, dim):
         for wd in word_map:
             td = word_map[wd] / len(val)
             idf = log10(len(dataset) / words_in_data[wd])
-            # result[i, wd] = 1
             result[i, wd] = td * idf
     return result
 

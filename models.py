@@ -1,13 +1,14 @@
+import os.path
 from copy import deepcopy
+from os import path
 from random import randint
 from time import time
 
-from beautifultable import BeautifulTable, STYLE_BOX
 from pandas import DataFrame
 from tensorflow.keras.backend import clear_session
 from tensorflow.python.keras.layers import Dense, Embedding, Flatten, SimpleRNN, Dropout, LSTM, Bidirectional
 from tensorflow.python.keras.models import Sequential
-from termcolor import cprint, colored
+from termcolor import cprint
 
 from data_making import make_data, data_preparing, applying
 from func import metrics, show
@@ -32,19 +33,8 @@ def make_tables(simple_s, name):
         new["Epoch"] += [simple_s[i][0][1]]
 
     df = DataFrame(new, columns=["name", "loss", "Precision", "Recall", "F1 score", "Accuracy", "Time", "Epoch"])
-    df.to_excel("xlses/" + name + '.xls')
 
-    cprint('MAX Accuracy table', 'green')
-    table = BeautifulTable()
-    table.set_style(STYLE_BOX)
-    lis = ["name", "loss", "Precision", "Recall", "F1 score", "Accuracy", "time", "epoch"]
-    table.column_headers = [colored(i, "red") for i in lis]
-    for i in simple_s:
-        s = simple_s[i][0][0]
-        f1_score = 2 * s[1] * s[2] / (s[1] + s[2]) if s[1] + s[2] != 0 else 0
-        table.append_row([i, s[0], s[1], s[2], f1_score, s[3], human_time(simple_s[i][1]),
-                          simple_s[i][0][1]])
-    print(table, end="\n\n\n")
+    df.to_excel("xlses/" + name + '.xls')
 
 
 def run_models(from_main_fun, epoch_s, adding="", optimizer="Adagrad"):
@@ -150,6 +140,12 @@ def run_models(from_main_fun, epoch_s, adding="", optimizer="Adagrad"):
     print(end="\n\n")
     return scores
 
+
+if not path.isdir('xlses'):
+    os.mkdir("xlses")
+
+if not path.isdir('plots'):
+    os.mkdir("plots")
 
 epochs = [40, 40, 40, 40, 40, 40]
 for number_of_d in [1000, 3000, 7000, 11000, 15000]:
