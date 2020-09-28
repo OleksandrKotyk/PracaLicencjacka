@@ -1,0 +1,1 @@
+Folder "Program" mieści w sobie pliki dotyczące programu. Jednym z nich jest "models" który uruchamia program. Foldery "plots_wyk_w_pracy" i "xlses_wyk_w_pracy" zawierają wyniki programu wykorzystane w pracy. Nowe wyniki będą zapisane do "plots" i "xlses". Plik "IMDB_Dataset" jest zbiorem uczącym.
