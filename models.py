@@ -34,7 +34,7 @@ def make_tables(simple_s, name):
 
     df = DataFrame(new, columns=["name", "loss", "Precision", "Recall", "F1 score", "Accuracy", "Time", "Epoch"])
 
-    df.to_excel("xlses/" + name + '.xls')
+    df.to_excel("xlses/" + name + '.xlsx')
 
 
 def run_models(from_main_fun, epoch_s, adding="", optimizer="Adagrad"):
